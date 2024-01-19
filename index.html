@@ -109,8 +109,13 @@ const LIMIT_OVERFLOW_HEIGHT = height;
 
 const addBreakInLabel=(label,num)=>{
   let newLabel=''
- 
-  newLabel+=label
+
+  for(let i=0;i<label.length;i++){
+    if(i%num===0){
+      newLabel+='\n'
+    }
+    newLabel+=label[i]
+  }
   return newLabel
 }
 
@@ -607,7 +612,7 @@ const loadData = (data) => {
       node.labelCfg = {
         style: {
           width: '100px',
-          fontSize: 40,
+          fontSize: 34,
           fill: 'red',
           fontWeight: 20,
         },
@@ -616,8 +621,8 @@ const loadData = (data) => {
       node.y = Math.random() * 800;
       showNodes.push(node);
     }
-    const label = addBreakInLabel(JSON.parse(node.title)[Locale],2)
-    console.log(label,11)
+    const label = addBreakInLabel(JSON.parse(node.title)[Locale],20)
+    console.log(label)
     node.label=label
     nodeMap.set(node.id, node);
   });
@@ -644,6 +649,7 @@ const loadData = (data) => {
   //   };
   //   edgesMap.set(edge.id, edge);
   // });
+
   console.log(showNodes)
   graph.data({
     nodes: showNodes,
