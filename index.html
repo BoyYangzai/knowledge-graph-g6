@@ -106,7 +106,6 @@ const height = 1500
 const LIMIT_OVERFLOW_WIDTH = width;
 const LIMIT_OVERFLOW_HEIGHT = height;
 
-
 const addBreakInLabel=(label,num)=>{
   let newLabel=''
 
@@ -748,6 +747,45 @@ const loadData = (data) => {
 //   });
 loadData(data);
 
+graph.on('wheelzoom',e=>{
+//获取当前某个node是否占满了视图
+const nodeItems = graph.getNodes();
+const bbox = graph.get('group').getBBox();
+const leftTopPoint = graph.getCanvasByPoint(bbox.minX, bbox.minY);
+const rightBottomPoint = graph.getCanvasByPoint(bbox.maxX, bbox.maxY);
+const width = rightBottomPoint.x - leftTopPoint.x;
+const height = rightBottomPoint.y - leftTopPoint.y;
+const zoom = graph.getZoom()
+const zoomWidth = width/zoom
+const zoomHeight = height/zoom
+const zoomX = e.offsetX
+const zoomY = e.offsetY
+const zoomEndX = zoomX+zoomWidth
+const zoomEndY = zoomY+zoomHeight
+
+const center = graph.getViewPortCenterPoint()
+
+nodeItems.forEach((node,index) => {
+  const nodeModel = node.getModel()
+  const nodeSize = nodeModel.size
+  const nodeX = nodeModel.x-40
+  const nodeY = nodeModel.y-40
+  const nodeEndX = nodeX+nodeSize
+  const nodeEndY = nodeY+nodeSize
+  const isFull70=nodeSize>zoomWidth*0.7
+  if(zoom>1.8&&isFull70){
+   if(nodeX<center.x&&nodeEndX>center.x&&
+     nodeY<center.y&&nodeEndY>center.y){
+      window.ReactNativeWebView.postMessage(JSON.stringify(
+        {
+        event:'zoom-select',
+        data:nodeModel
+      }
+      ))
+    }
+  }
+ });
+})
 // click root to expand
 graph.on('node:touchend', (e) => {
   curShowNodes = [];
