@@ -20,7 +20,7 @@
       "level": 0,
       "newsId": 37214,
       "published_time": "5 hr",
-      "title": "{\"en\":\"Christina Applegate's Ex Praises Her Emmy Appearance\",\"zh\":\"\"}",
+      "title": "{\"en\":\"Who is MUSK?\",\"zh\":\"\"}",
       "image_url": "https://i.dailymail.co.uk/1s/2024/01/17/21/80145719-0-image-m-129_1705526843829.jpg",
       "site_name": "Mail Online",
       "icon_url": "https://www.dailymail.co.uk/favicon.ico?v=2",
@@ -33,7 +33,7 @@
       "level": 0,
       "newsId": 37213,
       "published_time": "6 hr",
-      "title": "{\"en\":\"Dog sets new world record in NES game Gyromite\",\"zh\":\"\"}",
+      "title": "{\"en\":\"Wife\",\"zh\":\"\"}",
       "image_url": "https://cdn.arstechnica.net/wp-content/uploads/2024/01/Dog-speedrun-760x380.png",
       "site_name": "Ars Technica",
       "icon_url": "https://cdn.arstechnica.net/favicon.ico",
@@ -106,17 +106,42 @@ const height = 1500
 const LIMIT_OVERFLOW_WIDTH = width;
 const LIMIT_OVERFLOW_HEIGHT = height;
 
-const addBreakInLabel=(label,num)=>{
-  let newLabel=''
+const addBreakInLabel = (label) => {
+  let newLabel = '';
 
-  for(let i=0;i<label.length;i++){
-    if(i%num===0){
-      newLabel+='\n'
+  // 将标签字符串拆分成字符数组
+  const characters = label.split('');
+  
+  let spaceCount = 0;
+  let breCount = 0;
+  let temCount = 1
+  for (let i = 0; i < label.length; i++) {
+    if (label[i] === ' ') {
+      spaceCount++;
     }
-    newLabel+=label[i]
   }
-  return newLabel
-}
+
+  for (let i = 0; i < characters.length; i++) {
+    if(characters[i] === ' '){
+      temCount++
+    }
+    // 如果总的空格数小于5，每1个空格用来换行
+    if (spaceCount < 3 && characters[i] === ' '&&temCount%1===0 ) {
+      newLabel += '\n';
+      breCount++;
+    }
+    // 如果总的空格数大于等于5，每三个空格用来换行
+    else if (spaceCount >= 3 && characters[i] === ' '&&temCount%3===0) {
+      console.log(temCount%3===0,'&&spaceCount%3===0)')
+      newLabel += '\n';
+      breCount++;
+
+    }
+    newLabel += characters[i];
+  }
+
+  return { newLabel, breCount };
+};
 
 const mapNodeSize = (nodes, propertyName, visualRange) => {
   let minp = 9999999999;
@@ -132,29 +157,29 @@ const mapNodeSize = (nodes, propertyName, visualRange) => {
   });
 };
 
+const PRESET_CENTER_COLOR=['#f4dee7','#dee4fb','#dbeafb']
+const PRESET_FIRST_FLOOR_COLOR=['#e3f3ef','#fbf4da','#f8eae8']
+function getRandomInt(m) {
+  // Math.random() 生成一个介于 0 到 1 之间的随机小数
+  // 乘以 m，将范围映射到 [0, m]
+  // 使用 Math.floor() 向下取整，确保结果是整数
+  return Math.floor(Math.random() * (m + 1));
+}
+
+const PRESET_INDEX=getRandomInt(PRESET_CENTER_COLOR.length-1)
+
 const lightColors = [
-  '#8FE9FF',
-  '#87EAEF',
+  PRESET_CENTER_COLOR[getRandomInt(PRESET_INDEX)],
+  PRESET_FIRST_FLOOR_COLOR[getRandomInt(PRESET_INDEX)],
 ];
 const darkColors = [
-  '#7DA8FF',
-  '#44E6C1',
+  PRESET_CENTER_COLOR[getRandomInt(PRESET_INDEX)],
+  PRESET_FIRST_FLOOR_COLOR[getRandomInt(PRESET_INDEX)],
 ];
-const uLightColors = [
-  '#CFF6FF',
-  '#BCFCFF',
-];
-const uDarkColors = [
-  '#CADBFF',
-  '#A9FFEB',
-];
+
 
 const gColors = [];
 const unlightColorMap = new Map();
-lightColors.forEach((lcolor, i) => {
-  gColors.push('l(0) 0:' + lcolor + ' 1:' + darkColors[i]);
-  unlightColorMap.set(gColors[i], 'l(0) 0:' + uLightColors[i] + ' 1:' + uDarkColors[i]);
-});
 
 let graph;
 const layoutCfg = {
@@ -255,7 +280,6 @@ G6.registerNode(
           path,
           opacity: 0.25,
           fill: cfg.color || 'steelblue',
-          shadowColor: cfg.color.split(' ')[2].substr(2),
           shadowBlur: 40,
           shadowOffsetX: 0,
           shadowOffsetY: 30,
@@ -591,6 +615,24 @@ graph.on('node:dragend', (e) => {
   e.item.get('model').fy = null;
 });
 
+
+
+const CENTER_LABEL_STYLE = {
+  fill: 'black',
+  fontSize: 50,
+  fontWeight: 900,
+  shadowBlur: 10,
+  shadowColor: '#fff',
+};
+
+const FIRST_FLOOR_LABEL_STYLE = {
+  fill: '#black',
+  fontSize: 24,
+  fontWeight: 800,
+  shadowBlur: 10,
+  shadowColor: '#fff',
+
+};
 const loadData = (data) => {
   const layoutController = graph.get('layoutController');
   nodes = data.nodes;
@@ -600,29 +642,28 @@ const loadData = (data) => {
   showEdges = [];
   nodeMap = new Map();
   edgesMap = new Map();
+
   // find the roots
   nodes.forEach((node,index) => {
+    const isCenter =index===0?1:0
+    const {newLabel:label,breCount} = addBreakInLabel(JSON.parse(node.title)[Locale],20)
+     node.label=label
     if (node.level === 0) {
-      node.color = gColors[index===0?0:1];
+      node.color = lightColors[isCenter];
       node.style = {
-        fill: gColors[gColors[index===0?0:1]],
+        fill: lightColors[lightColors[isCenter]],
         lineWidth: 0,
       };
       node.labelCfg = {
-        style: {
-          width: '100px',
-          fontSize: 34,
-          fill: 'red',
-          fontWeight: 20,
-        },
+      position: breCount<3?'center':'center',
+      offset: breCount<3?0:-280,
+      style: isCenter?CENTER_LABEL_STYLE:FIRST_FLOOR_LABEL_STYLE,
       };
       node.x = Math.random() * 800;
       node.y = Math.random() * 800;
       showNodes.push(node);
     }
-    const label = addBreakInLabel(JSON.parse(node.title)[Locale],20)
-    console.log(label)
-    node.label=label
+  
     nodeMap.set(node.id, node);
   });
 
@@ -792,6 +833,13 @@ graph.on('node:touchend', (e) => {
   curShowEdges = [];
   const item = e.item;
   const model = item.getModel();
+
+
+graph.focusItem(item, true, {
+  easing: 'easeCubic',
+  duration: 400,
+});
+
   window.ReactNativeWebView.postMessage(JSON.stringify(
   {
   event:'press',
@@ -814,22 +862,8 @@ graph.on('node:touchend', (e) => {
     //   }
     // });
   
-    model.x=model.x+50
-    model.y=model.y+50
     // animatively hide the items which are going to disappear
-    if (curShowEdges.length) {
-      // curShowEdges.forEach((csedge) => {
-      //   const item = graph.findById(csedge.id);
-      //   item && graph.setItemState(item, 'disappearing', true);
-      // });
-    }
-    
-    // curShowNodes.forEach((csnode) => {
-    //   const item = graph.findById(csnode.id);
-    //   item && graph.setItemState(item, 'disappearing', true);
-    // });
   
-    graph.positionsAnimate();
 
     // reset curShowNodes nad curShowEdges
     curShowNodes = [];
