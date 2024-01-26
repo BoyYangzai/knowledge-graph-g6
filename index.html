@@ -12,79 +12,10 @@
     <script>
        const queryParams = new URLSearchParams(window.location.search);
         const Locale = queryParams.get('locale');
-        
-      // 定义数据源
-      const data = {
-  "nodes": [
-    {
-      "level": 0,
-      "newsId": 37214,
-      "published_time": "5 hr",
-      "title": "{\"en\":\"Who is MUSK?\",\"zh\":\"\"}",
-      "image_url": "https://i.dailymail.co.uk/1s/2024/01/17/21/80145719-0-image-m-129_1705526843829.jpg",
-      "site_name": "Mail Online",
-      "icon_url": "https://www.dailymail.co.uk/favicon.ico?v=2",
-      "read_count": 0,
-      "save_count": 0,
-      "saved": false,
-      "source_url": "https://www.dailymail.co.uk/tvshowbiz/article-12975665/Christina-Applegates-ex-Johnathon-Schaech-proud-Emmys.html"
-    },
-    {
-      "level": 0,
-      "newsId": 37213,
-      "published_time": "6 hr",
-      "title": "{\"en\":\"Wife\",\"zh\":\"\"}",
-      "image_url": "https://cdn.arstechnica.net/wp-content/uploads/2024/01/Dog-speedrun-760x380.png",
-      "site_name": "Ars Technica",
-      "icon_url": "https://cdn.arstechnica.net/favicon.ico",
-      "read_count": 0,
-      "save_count": 0,
-      "saved": false,
-      "source_url": "https://arstechnica.com/gaming/2024/01/thats-never-happened-before-games-done-quick-video-stars-speedrunning-dog/"
-    },
-    {
-      "level": 0,
-      "newsId": 37212,
-      "published_time": "8 hr",
-      "title": "{\"en\":\"Lexington, Kentucky sends message to space inviting extraterrestrial visitors\",\"zh\":\"\"}",
-      "image_url": "https://dims.apnews.com/dims4/default/dcac1a4/2147483647/strip/true/crop/700x394+0+28/resize/1440x810!/quality/90/?url=https%3A%2F%2Fassets.apnews.com%2F90%2F29%2F4e3c1cc7446089a9101a7bdff4c8%2Fdefaultshareimage-copy.png",
-      "site_name": "AP News",
-      "icon_url": "https://apnews.com/favicon-16x16.png",
-      "read_count": 0,
-      "save_count": 0,
-      "saved": false,
-      "source_url": "https://apnews.com/article/extraterrestrial-visitors-lexington-tourism-849580571040fd1704c67ddc1b2b6589"
-    },
-    {
-      "level": 0,
-      "newsId": 37211,
-      "published_time": "3 hr",
-      "title": "{\"en\":\"Saints' Loomis defends Allen, Carr\",\"zh\":\"\"}",
-      "image_url": "https://a1.espncdn.com/combiner/i?img=%2Fphoto%2F2024%2F0118%2Fr1278852_1296x729_16%2D9.jpg",
-      "site_name": "ESPN.com",
-      "icon_url": "https://a.espncdn.com/favicon.ico",
-      "read_count": 0,
-      "save_count": 0,
-      "saved": false,
-      "source_url": "https://www.espn.com/nfl/story/_/id/39331482/loomis-says-saints-fix-shortcomings-latest-playoff-miss"
-    },
-    {
-      "level": 0,
-      "newsId": 37210,
-      "published_time": "4 hr",
-      "title": "{\"en\":\"SARS-CoV-2 Infection May Cause Long COVID Symptoms\",\"zh\":\"\"}",
-      "image_url": "https://neurosciencenews.com/files/2024/01/covid-dopamine-neurosicence.jpg",
-      "site_name": "Neuroscience News; Neuroscience News",
-      "icon_url": "https://neurosciencenews.com/files/2020/08/cropped-Neuroscience-News-Site-Icon-512-comp-192x192.jpg",
-      "read_count": 0,
-      "save_count": 0,
-      "saved": false,
-      "source_url": "https://neurosciencenews.com/dopamine-covid-25475/"
-    },
-  ],
-  edges:[
-  ]
-}
+        const data = JSON.parse(queryParams.get('data'));
+        const queryStringColor = queryParams.get('centerColor');
+        const disableZoomSelect = queryParams.get('disableZoomSelect');
+
 
 /**
  * by Shiwu
@@ -158,30 +89,49 @@ const mapNodeSize = (nodes, propertyName, visualRange) => {
 };
 
 const PRESET_CENTER_COLOR=['#f4dee7','#dee4fb','#dbeafb']
-const PRESET_FIRST_FLOOR_COLOR=['#e3f3ef','#fbf4da','#f8eae8']
+const PRESET_SECOND_FLOOR_COLOR = '#f8f8f8'
+const PRESET_INDEX=getRandomInt(PRESET_CENTER_COLOR.length-1)
+
+
+const PRESET_COLORS_MAP={
+  '#f4dee7':'#e3f3ef',
+  '#dee4fb':'#fbf4da',
+  '#dbeafb':'#f8eae8',
+  '#e3f3ef':PRESET_SECOND_FLOOR_COLOR,
+  '#fbf4da':PRESET_SECOND_FLOOR_COLOR,
+  '#f8eae8':PRESET_SECOND_FLOOR_COLOR
+}
+
+const randomCenterColor = PRESET_CENTER_COLOR[PRESET_INDEX]
+
+const getCenterColor=()=>{
+  const queryColor = `#${queryStringColor}`
+  if(Object.keys(PRESET_COLORS_MAP).includes(queryColor)){
+    return queryColor
+  }else{
+    return randomCenterColor
+  }
+}
+
+
+const centerColor = getCenterColor()
+
+if(!queryStringColor){
+  window.ReactNativeWebView.postMessage(JSON.stringify(
+    {
+    event:'origin-center-color',
+    data:centerColor
+   }
+  ))
+}
+const aroundFloorColor = PRESET_COLORS_MAP[getCenterColor()]
+
 function getRandomInt(m) {
-  // Math.random() 生成一个介于 0 到 1 之间的随机小数
-  // 乘以 m，将范围映射到 [0, m]
-  // 使用 Math.floor() 向下取整，确保结果是整数
   return Math.floor(Math.random() * (m + 1));
 }
 
-const PRESET_INDEX=getRandomInt(PRESET_CENTER_COLOR.length-1)
-
-const lightColors = [
-  PRESET_CENTER_COLOR[getRandomInt(PRESET_INDEX)],
-  PRESET_FIRST_FLOOR_COLOR[getRandomInt(PRESET_INDEX)],
-];
-const darkColors = [
-  PRESET_CENTER_COLOR[getRandomInt(PRESET_INDEX)],
-  PRESET_FIRST_FLOOR_COLOR[getRandomInt(PRESET_INDEX)],
-];
-
-
-const gColors = [];
-const unlightColorMap = new Map();
-
 let graph;
+
 const layoutCfg = {
   type: 'force',
   nodeSize: (d) => {
@@ -552,9 +502,11 @@ graph = new G6.Graph({
   height,
   linkCenter: true,
   layout: layoutCfg,
+  animate: true,
   modes: {
     default: ['drag-canvas','zoom-canvas'],
   },
+
   defaultNode: {
     type: 'bubble',
     size: 95,
@@ -615,8 +567,6 @@ graph.on('node:dragend', (e) => {
   e.item.get('model').fy = null;
 });
 
-
-
 const CENTER_LABEL_STYLE = {
   fill: 'black',
   fontSize: 50,
@@ -631,11 +581,18 @@ const FIRST_FLOOR_LABEL_STYLE = {
   fontWeight: 800,
   shadowBlur: 10,
   shadowColor: '#fff',
+}
 
-};
-const loadData = (data) => {
+let existedNodes =null;
+
+const loadData = (data,isUpdate) => {
   const layoutController = graph.get('layoutController');
   nodes = data.nodes;
+  if(existedNodes){
+    existedNodes.forEach(nodeId=>{
+      graph.remove(nodeId)
+    })
+  }
   edges = data.edges;
 
   showNodes = [];
@@ -645,13 +602,15 @@ const loadData = (data) => {
 
   // find the roots
   nodes.forEach((node,index) => {
-    const isCenter =index===0?1:0
+    const isCenter =index===0?true:false
+    const CenterIndex = index===0?0:1
     const {newLabel:label,breCount} = addBreakInLabel(JSON.parse(node.title)[Locale],20)
      node.label=label
+     node.id=node.newsId.toString()
     if (node.level === 0) {
-      node.color = lightColors[isCenter];
+      node.color = isCenter?centerColor:aroundFloorColor,
       node.style = {
-        fill: lightColors[lightColors[isCenter]],
+        fill:  isCenter?centerColor:aroundFloorColor,
         lineWidth: 0,
       };
       node.labelCfg = {
@@ -690,12 +649,27 @@ const loadData = (data) => {
   //   edgesMap.set(edge.id, edge);
   // });
 
-  console.log(showNodes)
-  graph.data({
+  console.log({
+    nodes: showNodes,
+    edges: showEdges,
+  })
+
+  if(isUpdate){
+  //   graph.changeData({
+  //   nodes: showNodes,
+  //   edges: showEdges,
+  // })
+  // graph.focusItem(nodes[0]);
+  }else{
+      graph.data({
     nodes: showNodes,
     edges: showEdges,
   });
   graph.render();
+
+  }
+
+  existedNodes= nodes.map(node=>node.id)
 };
 
 // graph.on('node:mouseenter', (e) => {
@@ -817,18 +791,20 @@ nodeItems.forEach((node,index) => {
   if(zoom>1.8&&isFull70){
    if(nodeX<center.x&&nodeEndX>center.x&&
      nodeY<center.y&&nodeEndY>center.y){
-      window.ReactNativeWebView.postMessage(JSON.stringify(
-        {
-        event:'zoom-select',
-        data:nodeModel
+      if(index!==0&&disableZoomSelect!=='true'){
+        window.ReactNativeWebView.postMessage(JSON.stringify(
+          {
+          event:'zoom-select',
+          data:nodeModel
+        }
+        ))
       }
-      ))
     }
   }
  });
 })
 // click root to expand
-graph.on('node:touchend', (e) => {
+graph.on('node:touchstart', (e) => {
   curShowNodes = [];
   curShowEdges = [];
   const item = e.item;
@@ -1038,6 +1014,7 @@ graph.focusItem(item, true, {
         graph.clearItemStates(item);
         graph.setItemState(item, 'appearing', true);
       });
+      
     }, 400);
   }
 
@@ -1090,6 +1067,8 @@ if (typeof window !== 'undefined')
     if (!container || !container.scrollWidth || !container.scrollHeight) return;
     graph.changeSize(container.scrollWidth, container.scrollHeight);
   };
+
+
 
     </script>
   </body>
