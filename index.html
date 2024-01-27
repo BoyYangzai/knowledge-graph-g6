@@ -85,7 +85,11 @@ const mapNodeSize = (nodes, propertyName, visualRange) => {
   const rangepLength = maxp - minp;
   const rangevLength = visualRange[1] - visualRange[0];
   nodes.forEach((node,index) => {
-    node.size = -index*10+400
+    if(index===0){
+      node.size = 800
+      return
+    }
+    node.size = 400
   });
 };
 
@@ -142,30 +146,6 @@ const layoutCfg = {
   collideStrength: 0.8,
   alphaDecay: 0.01,
   preventOverlap: true,
-  onTick: () => {
-    const nodeItems = graph.getNodes();
-    const height = graph.get('height');
-    const width = graph.get('width');
-    const padding = 10;
-
-    // Ensure the first node stays at the center
-    const firstNode = nodeItems[0]; // Assuming the first node is at index 0
-    const firstNodeModel = firstNode.getModel();
-
-    // Adjust the position of the first node to keep it at the center
-    firstNodeModel.x = width / 2;
-    firstNodeModel.y = height / 2;
-
-    // Adjust the positions of other nodes to prevent overlap
-    nodeItems.slice(1).forEach((item) => {
-      const model = item.getModel();
-      if (model.x > width - padding) model.x = width - padding;
-      else if (model.x < padding) model.x = padding;
-
-      if (model.y > height - padding) model.y = height - padding;
-      else if (model.y < padding) model.y = padding;
-    });
-  },
 };
 
 G6.registerBehavior('double-finger-drag-canvas', {
@@ -363,83 +343,6 @@ G6.registerNode(
   'single-node',
 );
 
-G6.registerNode(
-  'animate-circle',
-  {
-    setState(name, value, item) {
-      const shape = item.get('keyShape');
-      const label = shape.get('parent').get('children')[1];
-      if (name === 'disappearing' && value) {
-        shape.animate(
-          (ratio) => {
-            return {
-              opacity: 1 - ratio,
-              r: shape.attr('r') * (1 - ratio),
-            };
-          },
-          {
-            duration: 200,
-          },
-        );
-        label.animate(
-          (ratio) => {
-            return {
-              opacity: 1 - ratio,
-            };
-          },
-          {
-            duration: 500,
-          },
-        );
-      } else if (name === 'appearing' && value) {
-        const r = item.getModel().size / 2;
-        shape.animate(
-          (ratio) => {
-            return {
-              opacity: ratio,
-              r: r * ratio,
-              fill: shape.attr('fill'),
-            };
-          },
-          {
-            duration: 300,
-          },
-        );
-        label.animate(
-          {
-            onFrame(ratio) {
-              return {
-                opacity: ratio,
-              };
-            },
-          },
-          {
-            duration: 300,
-          },
-        );
-      } else if (name === 'dark') {
-        if (value) {
-          if (shape.attr('fill') !== '#fff') {
-            shape.oriFill = shape.attr('fill');
-            const uColor = unlightColorMap.get(shape.attr('fill'));
-            shape.attr('fill', uColor);
-          } else {
-            shape.attr('opacity', 0.2);
-            label.attr('fill', '#A3B1BF');
-          }
-        } else {
-          if (shape.attr('fill') !== '#fff') {
-            shape.attr('fill', shape.oriFill || shape.attr('fill'));
-          } else {
-            shape.attr('opacity', 1);
-            label.attr('fill', '#697B8C');
-          }
-        }
-      }
-    },
-  },
-  'circle',
-);
 
 G6.registerEdge(
   'animate-line',
@@ -497,33 +400,72 @@ G6.registerEdge(
   'line',
 );
 
+// 自定义 zoom 模式
+const customZoomMode = {
+  onTouchStart(e) {
+    const touches = e.originalEvent.touches;
+    if (touches.length === 2) {
+      // 记录两个手指的初始位置
+      this.startTouches = touches;
+    }
+  },
+  onTouchMove(e) {
+    const touches = e.originalEvent.touches;
+    if (touches.length === 2 && this.startTouches) {
+      // 计算两个手指的中心坐标
+      const center = {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2,
+      };
+
+      // 计算缩放比例
+      const distanceStart = Math.hypot(
+        this.startTouches[0].clientX - this.startTouches[1].clientX,
+        this.startTouches[0].clientY - this.startTouches[1].clientY
+      );
+      const distanceMove = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      const scale = distanceMove / distanceStart;
+
+      // 缩放图表，并设置缩放中心
+      graph.zoomTo(scale, center);
+
+      // 更新手指的位置
+      this.startTouches = touches;
+    }
+  },
+  onTouchEnd() {
+    // 清空手指信息
+    this.startTouches = null;
+  },
+};
+
+
 graph = new G6.Graph({
   container: 'container',
   width,
   height,
   linkCenter: true,
   layout: layoutCfg,
-  animate: true,
+  animate: true, // Boolean，切换布局时是否使用动画过度，默认为 false
+  animateCfg: {
+    duration: 500, // Number，一次动画的时长
+    easing: 'linearEasing', // String，动画函数
+  },
   modes: {
     default: ['drag-canvas','zoom-canvas'],
-  },
-
-  defaultNode: {
-    type: 'bubble',
-    size: 95,
-    labelCfg: {
-      position: 'center',
-      style: {
-        fill: 'white',
-      },
-    },
   },
   defaultEdge: {
     color: '#888',
     type: 'animate-line', //'animate-line'
   },
 });
+
 graph.get('canvas').set('localRefresh', false);
+
+
 
 function translate(x, y) {
   let moveX = x;
@@ -587,6 +529,46 @@ const FIRST_FLOOR_LABEL_STYLE = {
 let existedNodes =null;
 
 const loadData = (data,isUpdate) => {
+graph.updateLayout({
+  onTick: () => {
+    const nodeItems = graph.getNodes();
+    const height = graph.get('height');
+    const width = graph.get('width');
+    const padding = 10;
+
+    // Ensure the first node stays at the center
+    const firstNode = nodeItems[0]; // Assuming the first node is at index 0
+    const firstNodeModel = firstNode.getModel();
+
+    // Adjust the position of the first node to keep it at the center
+    firstNodeModel.x = width / 2;
+    firstNodeModel.y = height / 2;
+
+    // Arrange other nodes in a circular pattern
+    const numNodes = nodeItems.length - 1;
+    const radius = Math.min(width, height)/2; // 距离圆心的位置
+    const randomPosition = []
+
+    nodeItems.slice(1).forEach((item, index) => {
+      const angle = (2 * Math.PI * index) / numNodes;
+      const x = width / 2 + radius * Math.cos(angle);
+      const y = height / 2 + radius * Math.sin(angle);
+      // Avoid overlap with padding
+      const adjustedX = Math.max(padding, Math.min(width - padding, x));
+      const adjustedY = Math.max(padding, Math.min(height - padding, y));
+      randomPosition.push({x:adjustedX,y:adjustedY})
+     });
+
+    nodeItems.slice(1).forEach((item,index) => {
+      const model = item.getModel();
+      const pos = randomPosition[index]
+      model.fx = pos.x;
+      model.fy = pos.y;
+     });
+    }
+    
+  })
+
   const layoutController = graph.get('layoutController');
   nodes = data.nodes;
   if(existedNodes){
@@ -609,22 +591,22 @@ const loadData = (data,isUpdate) => {
      node.label=label
      node.id=node.newsId.toString()
     if (node.level === 0) {
-      node.color = isCenter?centerColor:aroundFloorColor,
+      node.bgColor = isCenter?centerColor:aroundFloorColor,
       node.style = {
         fill:  isCenter?centerColor:aroundFloorColor,
-        lineWidth: 0,
+        stroke: '#fff',
+        lineWidth: isCenter?0:40,
       };
       node.labelCfg = {
       position: breCount<3?'center':'center',
       offset: breCount<3?0:-280,
       style: isCenter?CENTER_LABEL_STYLE:FIRST_FLOOR_LABEL_STYLE,
       };
-      node.x = Math.random() * 800;
-      node.y = Math.random() * 800;
       showNodes.push(node);
     }
   
     nodeMap.set(node.id, node);
+    
   });
 
   mapNodeSize(showNodes, 'childrenNum', [120, 180]);
@@ -786,6 +768,7 @@ const zoomEndX = zoomX+zoomWidth
 const zoomEndY = zoomY+zoomHeight
 
 const center = graph.getViewPortCenterPoint()
+console.log(nodeItems,111)
 
 nodeItems.forEach((node,index) => {
   const nodeModel = node.getModel()
@@ -794,10 +777,19 @@ nodeItems.forEach((node,index) => {
   const nodeY = nodeModel.y-40
   const nodeEndX = nodeX+nodeSize
   const nodeEndY = nodeY+nodeSize
+ 
   const isFull70=nodeSize>zoomWidth*0.7
-  if(zoom>1.8&&isFull70){
-   if(nodeX<center.x&&nodeEndX>center.x&&
-     nodeY<center.y&&nodeEndY>center.y){
+   
+  if(zoom>1.8){
+    if(index===1){
+    console.log(center.x,center.y)
+    console.log(nodeX,nodeEndX,nodeY,nodeEndY)
+    console.log(nodeX<center.x&&nodeEndX>center.x&&
+     nodeY<center.y&&nodeEndY>center.y)
+  }
+    if(nodeX<center.x&&nodeEndX>center.x&&
+     nodeY-20<center.y&&nodeEndY+20>center.y){
+      console.log(index)
       if(index!==0&&disableZoomSelect!=='true'){
         window.ReactNativeWebView.postMessage(JSON.stringify(
           {
