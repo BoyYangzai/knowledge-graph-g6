@@ -16,6 +16,7 @@
         const queryStringColor = queryParams.get('centerColor');
         const disableZoomSelect = queryParams.get('disableZoomSelect');
 
+        let disableTouchEvent = false;
 
 /**
  * by Shiwu
@@ -762,7 +763,13 @@ const loadData = (data,isUpdate) => {
 //   });
 loadData(data);
 
+let cancelDisableTouchTimer =null;
+
 graph.on('wheelzoom',e=>{
+disableTouchEvent = true;
+if(cancelDisableTouchTimer){
+  clearTimeout(cancelDisableTouchTimer)
+}
 //获取当前某个node是否占满了视图
 const nodeItems = graph.getNodes();
 const bbox = graph.get('group').getBBox();
@@ -802,9 +809,18 @@ nodeItems.forEach((node,index) => {
     }
   }
  });
+
+  cancelDisableTouchTimer= setTimeout(()=>{
+      disableTouchEvent = false;
+    },300)
 })
+
 // click root to expand
-graph.on('node:touchstart', (e) => {
+graph.on('node:touchend', (e) => {
+  if(disableTouchEvent) {
+    return
+  };
+
   curShowNodes = [];
   curShowEdges = [];
   const item = e.item;
