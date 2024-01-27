@@ -146,6 +146,38 @@ const layoutCfg = {
   collideStrength: 0.8,
   alphaDecay: 0.01,
   preventOverlap: true,
+  onTick: () => {
+    const nodeItems = graph.getNodes();
+    const height = graph.get('height');
+    const width = graph.get('width');
+    const padding = 10;
+
+    // Ensure the first node stays at the center
+    const firstNode = nodeItems[0]; // Assuming the first node is at index 0
+    const firstNodeModel = firstNode.getModel();
+
+    // Adjust the position of the first node to keep it at the center
+    firstNodeModel.x = width / 2;
+    firstNodeModel.y = height / 2;
+
+    // Arrange other nodes in a circular pattern
+    const numNodes = nodeItems.length - 1;
+    const radius = Math.min(width, height)/2; // 距离圆心的位置
+    const randomPosition = []
+
+    nodeItems.slice(1).forEach((item, index) => {
+      const angle = (2 * Math.PI * index) / numNodes;
+      const x = width / 2 + radius * Math.cos(angle);
+      const y = height / 2 + radius * Math.sin(angle);
+      // Avoid overlap with padding
+      const adjustedX = Math.max(padding, Math.min(width - padding, x));
+      const adjustedY = Math.max(padding, Math.min(height - padding, y));
+      const model = item.getModel();
+      model.fx = adjustedX
+      model.fy = adjustedY
+     });
+    }
+    
 };
 
 G6.registerBehavior('double-finger-drag-canvas', {
@@ -457,6 +489,9 @@ graph = new G6.Graph({
   modes: {
     default: ['drag-canvas','zoom-canvas'],
   },
+  // defaultNode: {
+  //   type: 'bubble',
+  // },
   defaultEdge: {
     color: '#888',
     type: 'animate-line', //'animate-line'
@@ -529,46 +564,6 @@ const FIRST_FLOOR_LABEL_STYLE = {
 let existedNodes =null;
 
 const loadData = (data,isUpdate) => {
-graph.updateLayout({
-  onTick: () => {
-    const nodeItems = graph.getNodes();
-    const height = graph.get('height');
-    const width = graph.get('width');
-    const padding = 10;
-
-    // Ensure the first node stays at the center
-    const firstNode = nodeItems[0]; // Assuming the first node is at index 0
-    const firstNodeModel = firstNode.getModel();
-
-    // Adjust the position of the first node to keep it at the center
-    firstNodeModel.x = width / 2;
-    firstNodeModel.y = height / 2;
-
-    // Arrange other nodes in a circular pattern
-    const numNodes = nodeItems.length - 1;
-    const radius = Math.min(width, height)/2; // 距离圆心的位置
-    const randomPosition = []
-
-    nodeItems.slice(1).forEach((item, index) => {
-      const angle = (2 * Math.PI * index) / numNodes;
-      const x = width / 2 + radius * Math.cos(angle);
-      const y = height / 2 + radius * Math.sin(angle);
-      // Avoid overlap with padding
-      const adjustedX = Math.max(padding, Math.min(width - padding, x));
-      const adjustedY = Math.max(padding, Math.min(height - padding, y));
-      randomPosition.push({x:adjustedX,y:adjustedY})
-     });
-
-    nodeItems.slice(1).forEach((item,index) => {
-      const model = item.getModel();
-      const pos = randomPosition[index]
-      model.fx = pos.x;
-      model.fy = pos.y;
-     });
-    }
-    
-  })
-
   const layoutController = graph.get('layoutController');
   nodes = data.nodes;
   if(existedNodes){
@@ -602,6 +597,8 @@ graph.updateLayout({
       offset: breCount<3?0:-280,
       style: isCenter?CENTER_LABEL_STYLE:FIRST_FLOOR_LABEL_STYLE,
       };
+      node.x = -8000
+      node.y = -8000;
       showNodes.push(node);
     }
   
