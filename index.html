@@ -47,6 +47,7 @@ const addBreakInLabel = (label) => {
   let spaceCount = 0;
   let breCount = 0;
   let temCount = 1
+
   for (let i = 0; i < label.length; i++) {
     if (label[i] === ' ') {
       spaceCount++;
@@ -64,7 +65,6 @@ const addBreakInLabel = (label) => {
     }
     // 如果总的空格数大于等于5，每三个空格用来换行
     else if (spaceCount >= 3 && characters[i] === ' '&&temCount%3===0) {
-      console.log(temCount%3===0,'&&spaceCount%3===0)')
       newLabel += '\n';
       breCount++;
 
@@ -487,7 +487,10 @@ graph = new G6.Graph({
     easing: 'linearEasing', // String，动画函数
   },
   modes: {
-    default: ['drag-canvas','zoom-canvas'],
+    default: [{
+      type:'drag-canvas',
+      allowDragOnItem:true
+    },'zoom-canvas'],
   },
   // defaultNode: {
   //   type: 'bubble',
@@ -541,8 +544,10 @@ graph.on('node:drag', (e) => {
   refreshDragedNodePosition(e);
 });
 graph.on('node:dragend', (e) => {
+
   e.item.get('model').fx = null;
   e.item.get('model').fy = null;
+
 });
 
 const CENTER_LABEL_STYLE = {
@@ -765,7 +770,6 @@ const zoomEndX = zoomX+zoomWidth
 const zoomEndY = zoomY+zoomHeight
 
 const center = graph.getViewPortCenterPoint()
-console.log(nodeItems,111)
 
 nodeItems.forEach((node,index) => {
   const nodeModel = node.getModel()
@@ -778,15 +782,8 @@ nodeItems.forEach((node,index) => {
   const isFull70=nodeSize>zoomWidth*0.7
    
   if(zoom>1.8){
-    if(index===1){
-    console.log(center.x,center.y)
-    console.log(nodeX,nodeEndX,nodeY,nodeEndY)
-    console.log(nodeX<center.x&&nodeEndX>center.x&&
-     nodeY<center.y&&nodeEndY>center.y)
-  }
     if(nodeX<center.x&&nodeEndX>center.x&&
      nodeY-20<center.y&&nodeEndY+20>center.y){
-      console.log(index)
       if(index!==0&&disableZoomSelect!=='true'){
         window.ReactNativeWebView.postMessage(JSON.stringify(
           {
@@ -1024,6 +1021,17 @@ graph.focusItem(item, true, {
   }
 
 });
+
+
+graph.on('canvas:drag',()=>{
+  disableTouchEvent = true;
+  if(cancelDisableTouchTimer){
+    clearTimeout(cancelDisableTouchTimer)
+  }
+ cancelDisableTouchTimer = setTimeout(() => {
+    disableTouchEvent = false;
+  }, 500);
+})
 // graph.on('canvas:click', () => {
 //   currentFocus = undefined;
 //   const forceLayout = graph.get('layoutController').layoutMethods[0];
